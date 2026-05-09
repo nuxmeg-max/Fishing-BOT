@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🎣 Fishing RPG — Capitano</title>
+<style>
+  /* ── Reset & Base ─────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0e1a;
+    --bg2:       #111827;
+    --bg3:       #1a2235;
+    --border:    #1e3a5f;
+    --cyan:      #00d4ff;
+    --cyan-dim:  #0099bb;
+    --green:     #00ff88;
+    --gold:      #ffd700;
+    --purple:    #a855f7;
+    --red:       #ff4757;
+    --text:      #c8d6e5;
+    --text-dim:  #64748b;
+    --common:    #94a3b8;
+    --rare:      #3b82f6;
+    --epic:      #a855f7;
+    --legendary: #ffd700;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ── Animated BG ──────────────────────────── */
+  .ocean-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background: linear-gradient(180deg,
+      #0a0e1a 0%,
+      #0c1829 40%,
+      #0e2040 70%,
+      #082030 100%
+    );
+    overflow: hidden;
+  }
+  .wave {
+    position: absolute; bottom: 0; width: 200%; height: 160px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,60 C150,100 350,20 600,60 C850,100 1050,20 1200,60 L1200,120 L0,120 Z' fill='%23001a33' opacity='0.5'/%3E%3C/svg%3E") repeat-x bottom;
+    animation: waveMove 6s linear infinite;
+  }
+  .wave2 {
+    position: absolute; bottom: 0; width: 200%; height: 120px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,60 C200,20 400,100 600,60 C800,20 1000,100 1200,60 L1200,120 L0,120 Z' fill='%2300d4ff' opacity='0.04'/%3E%3C/svg%3E") repeat-x bottom;
+    animation: waveMove 10s linear infinite reverse;
+  }
+  @keyframes waveMove { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(0,212,255,0.08);
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(0) scale(1); opacity: 0.5; }
+    100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
+  }
+
+  /* ── Container ────────────────────────────── */
+  .container {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 420px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── Header ───────────────────────────────── */
+  .header {
+    text-align: center;
+    padding: 16px;
+    background: rgba(0,20,40,0.8);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+  }
+  .header-title {
+    font-size: 22px; font-weight: 900;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+  }
+  .header-sub {
+    font-size: 12px; color: var(--text-dim);
+    margin-top: 4px;
+    font-family: monospace;
+  }
+
+  /* ── Info Bar ─────────────────────────────── */
+  .info-bar {
+    display: flex; gap: 8px;
+  }
+  .info-card {
+    flex: 1;
+    background: rgba(0,20,40,0.7);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+  }
+  .info-card .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .info-card .value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+
+  /* ── Timer ────────────────────────────────── */
+  .timer-bar-wrap {
+    background: rgba(0,20,40,0.7);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .timer-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .timer-track {
+    height: 8px;
+    background: #1a2235;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .timer-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    transition: width 0.1s linear, background 0.5s;
+  }
+  .timer-fill.danger { background: linear-gradient(90deg, var(--red), #ff8800); }
+
+  /* ── Fish Preview ─────────────────────────── */
+  .fish-preview {
+    background: rgba(0,20,40,0.8);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex; gap: 14px; align-items: center;
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .fish-preview::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, transparent, rgba(0,212,255,0.2), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .fish-thumb {
+    width: 64px; height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+  .fish-info h3 { font-size: 16px; font-weight: 700; }
+  .fish-info .fish-rarity {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    display: inline-block;
+    margin: 4px 0;
+  }
+  .fish-info .fish-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .fish-question-mark {
+    font-size: 48px; line-height: 64px; text-align: center;
+    width: 64px; height: 64px;
+    background: var(--bg3);
+    border-radius: 12px;
+    border: 2px dashed var(--border);
+    flex-shrink: 0;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .rarity-common    { background: rgba(148,163,184,0.15); color: var(--common); border: 1px solid var(--common); }
+  .rarity-rare      { background: rgba(59,130,246,0.15);  color: var(--rare);   border: 1px solid var(--rare); }
+  .rarity-epic      { background: rgba(168,85,247,0.15);  color: var(--epic);   border: 1px solid var(--epic); }
+  .rarity-legendary { background: rgba(255,215,0,0.15);   color: var(--legendary); border: 1px solid var(--legendary);
+    animation: shimmer 1.5s ease-in-out infinite; }
+  @keyframes shimmer { 0%,100% { box-shadow: 0 0 6px rgba(255,215,0,0.3); } 50% { box-shadow: 0 0 18px rgba(255,215,0,0.7); } }
+
+  /* ── Mechanic Arena ───────────────────────── */
+  .mechanic-box {
+    background: rgba(0,20,40,0.85);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 16px;
+    padding: 18px;
+    backdrop-filter: blur(12px);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 180px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+  }
+  .mech-step {
+    position: absolute; top: 10px; right: 12px;
+    font-size: 10px; color: var(--text-dim);
+    font-family: monospace;
+  }
+  .mech-title {
+    font-size: 13px; color: var(--cyan);
+    text-transform: uppercase; letter-spacing: 2px;
+    font-weight: 700;
+  }
+  .mech-instruction {
+    font-size: 18px; font-weight: 800;
+    line-height: 1.3;
+  }
+  .mech-sub { font-size: 12px; color: var(--text-dim); }
+
+  /* ── Direction Buttons ────────────────────── */
+  .dir-grid {
+    display: grid;
+    grid-template-columns: 56px 56px 56px;
+    grid-template-rows: 56px 56px 56px;
+    gap: 6px;
+    place-items: center;
+  }
+  .dir-btn {
+    width: 54px; height: 54px;
+    border-radius: 12px;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dir-btn:active, .dir-btn.pressed { transform: scale(0.9); background: var(--cyan-dim); border-color: var(--cyan); }
+  .dir-btn.correct { background: rgba(0,255,136,0.2); border-color: var(--green); }
+  .dir-btn.wrong   { background: rgba(255,71,87,0.2); border-color: var(--red); }
+  .dir-btn.empty   { background: transparent; border-color: transparent; pointer-events: none; }
+
+  /* ── Tap Button ───────────────────────────── */
+  .tap-btn {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.2), rgba(0,100,150,0.1));
+    border: 3px solid var(--cyan);
+    font-size: 40px;
+    cursor: pointer;
+    transition: all 0.08s;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 20px rgba(0,212,255,0.2);
+  }
+  .tap-btn:active { transform: scale(0.9); background: radial-gradient(circle, rgba(0,212,255,0.4), rgba(0,150,200,0.2)); box-shadow: 0 0 40px rgba(0,212,255,0.5); }
+  .tap-count { font-size: 13px; font-weight: 700; color: var(--cyan); font-family: monospace; }
+  .tap-progress {
+    width: 100%; height: 6px;
+    background: var(--bg3);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .tap-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--green));
+    border-radius: 99px;
+    transition: width 0.1s;
+  }
+
+  /* ── Hold Button ──────────────────────────── */
+  .hold-btn {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.2), rgba(100,50,150,0.1));
+    border: 3px solid var(--purple);
+    font-size: 36px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 20px rgba(168,85,247,0.2);
+    transition: all 0.1s;
+  }
+  .hold-btn.holding { transform: scale(1.05); background: radial-gradient(circle, rgba(168,85,247,0.4), rgba(100,50,200,0.2)); box-shadow: 0 0 40px rgba(168,85,247,0.5); }
+  .hold-bar-wrap {
+    width: 100%; height: 10px;
+    background: var(--bg3);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid var(--purple);
+  }
+  .hold-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), #c084fc);
+    border-radius: 99px;
+    width: 0%;
+    transition: width 0.05s linear;
+  }
+  .hold-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  /* ── Sequence ─────────────────────────────── */
+  .seq-display {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    justify-content: center;
+  }
+  .seq-item {
+    width: 44px; height: 44px;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .seq-item.active { border-color: var(--cyan); background: rgba(0,212,255,0.15); transform: scale(1.1); }
+  .seq-item.done   { border-color: var(--green); background: rgba(0,255,136,0.1); opacity: 0.5; }
+  .seq-item.wrong  { border-color: var(--red);   background: rgba(255,71,87,0.15); }
+
+  .seq-btns {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    justify-content: center;
+  }
+  .seq-btn {
+    width: 54px; height: 54px;
+    border-radius: 12px;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .seq-btn:active { transform: scale(0.88); border-color: var(--cyan); }
+
+  /* ── Result Screen ────────────────────────── */
+  .result-screen {
+    background: rgba(0,20,40,0.95);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 20px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .result-screen.show { display: flex; }
+  .result-emoji { font-size: 64px; line-height: 1; }
+  .result-title { font-size: 24px; font-weight: 900; }
+  .result-sub   { font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+  .result-fish-img {
+    width: 120px; height: 90px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+  }
+  .result-rewards {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 14px;
+    line-height: 2;
+    text-align: left;
+    width: 100%;
+  }
+  .reward-row { display: flex; justify-content: space-between; }
+  .reward-val { font-weight: 700; color: var(--green); }
+
+  .confetti-particle {
+    position: fixed;
+    pointer-events: none;
+    border-radius: 2px;
+    animation: confettiFall linear forwards;
+    z-index: 100;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── Loading / Wait ───────────────────────── */
+  .wait-screen {
+    text-align: center;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    min-height: 200px;
+  }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Vibrate Effect ───────────────────────── */
+  .shake { animation: shake 0.3s ease-in-out; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-8px); }
+    40%      { transform: translateX(8px); }
+    60%      { transform: translateX(-5px); }
+    80%      { transform: translateX(5px); }
+  }
+
+  /* ── Bite Alert ───────────────────────────── */
+  .bite-alert {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    flex-direction: column; gap: 16px;
+  }
+  .bite-text {
+    font-size: 36px; font-weight: 900;
+    animation: bitePop 0.4s ease-out;
+    text-align: center;
+  }
+  @keyframes bitePop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .bite-sub { font-size: 15px; color: var(--text-dim); text-align: center; }
+  .ripple {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--cyan);
+    animation: rippleOut 1s ease-out infinite;
+  }
+  @keyframes rippleOut { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="ocean-bg">
+  <div class="wave"></div>
+  <div class="wave2"></div>
+</div>
+
+<!-- Main Container -->
+<div class="container" id="mainContainer">
+
+  <!-- Waiting / Casting -->
+  <div id="waitScreen" class="wait-screen" style="display:flex">
+    <div class="header">
+      <div class="header-title">🎣 FISHING RPG</div>
+      <div class="header-sub" id="locationLabel">Mempersiapkan joran...</div>
+    </div>
+    <div class="spinner"></div>
+    <div style="font-size:14px; color:var(--text-dim); text-align:center; max-width:260px; line-height:1.6">
+      Menunggu ikan memakan umpan...<br>
+      <span style="color:var(--cyan); font-weight:700;">Bersiap-siap!</span>
+    </div>
+    <div class="timer-bar-wrap" style="width:100%">
+      <div class="timer-label">
+        <span>⏱️ Waktu tersisa</span>
+        <span id="waitTimerText">--</span>
+      </div>
+      <div class="timer-track">
+        <div class="timer-fill" id="waitTimerFill" style="width:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Area (hidden until bite) -->
+  <div id="gameArea" style="display:none; flex-direction:column; gap:12px">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">🎣 FISHING RPG</div>
+      <div class="header-sub" id="gameLocationLabel">—</div>
+    </div>
+
+    <!-- Info Bar -->
+    <div class="info-bar">
+      <div class="info-card">
+        <div class="label">Rarity</div>
+        <div class="value" id="fishRarityBadge">—</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Ikan</div>
+        <div class="value" id="fishEmojiDisplay">🐟</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Step</div>
+        <div class="value" id="stepLabel">1/1</div>
+      </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-bar-wrap">
+      <div class="timer-label">
+        <span>⏱️ Waktu mekanik</span>
+        <span id="mechTimerText">--</span>
+      </div>
+      <div class="timer-track">
+        <div class="timer-fill" id="mechTimerFill"></div>
+      </div>
+    </div>
+
+    <!-- Fish Preview -->
+    <div class="fish-preview" id="fishPreview">
+      <div class="fish-question-mark">❓</div>
+      <div class="fish-info">
+        <h3 id="fishName">???</h3>
+        <span class="fish-rarity rarity-common" id="fishRarityTag">Common</span>
+        <div class="fish-desc" id="fishDescText">Tangkap ikan ini sebelum kabur!</div>
+      </div>
+    </div>
+
+    <!-- Mechanic Box -->
+    <div class="mechanic-box" id="mechanicBox">
+      <div class="mech-step" id="mechStep">1/1</div>
+      <div class="mech-title" id="mechTitle">BERSIAP...</div>
+      <div class="mech-instruction" id="mechInstruction">—</div>
+      <div id="mechControls"></div>
+      <div class="mech-sub" id="mechSub"></div>
+    </div>
+
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-screen" id="resultScreen">
+    <div class="result-emoji" id="resultEmoji">🎣</div>
+    <div class="result-title" id="resultTitle">—</div>
+    <img class="result-fish-img" id="resultImg" src="" alt="ikan" style="display:none" />
+    <div class="result-sub" id="resultSub">—</div>
+    <div class="result-rewards" id="resultRewards" style="display:none"></div>
+    <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">
+      Notifikasi sudah dikirim ke WhatsApp kamu!
+    </div>
+  </div>
+
+</div>
+
+<!-- Bite Alert Overlay -->
+<div class="bite-alert" id="biteAlert" style="display:none">
+  <div class="ripple"></div>
+  <div class="bite-text" id="biteTitle">🎣 ADA YANG MAKAN!</div>
+  <div class="bite-sub" id="biteSub">Bersiap untuk bertarung!</div>
+  <div class="ripple"></div>
+</div>
+
+<script src="/config.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//   Game State & Config
+// ═══════════════════════════════════════════════════════
+const params   = new URLSearchParams(location.search);
+const UID      = params.get("uid")   || "";
+const CHAT_JID = params.get("chat")  || "";
+const FISH_ID  = params.get("fish")  || "";
+const TIMER_MS = parseInt(params.get("timer") || "15000");
+
+// ── Webhook URL — ganti sesuai IP/domain bot kamu ──────
+// Bisa pakai ngrok / cloudflared / domain publik bot
+const BOT_WEBHOOK = (window.BOT_WEBHOOK_URL || "https://YOUR-BOT-DOMAIN.com") + "/fishing-result";
+const WEBHOOK_SECRET = window.WEBHOOK_SECRET || "capitano-mancing-2026";
+
+// ── Fish Data (inline dari query, full data di bot) ────
+const FISH_DB = {
+  // Diisi dari data yang dikirim via URL atau hardcode minimal
+  // Fish rarity dikirim via URL param
+  common:    { timer: 8000,  label: "⬜ Common",    mechSteps: 1 },
+  rare:      { timer: 7000,  label: "🟦 Rare",       mechSteps: 2 },
+  epic:      { timer: 6000,  label: "🟪 Epic",       mechSteps: 3 },
+  legendary: { timer: 5000,  label: "🟨 Legendary",  mechSteps: 4 }
+};
+
+// Fish info dari fishId — nama dasar
+const FISH_NAMES = {
+  common_laut: { name:"Ikan Teri",   emoji:"🐟", desc:"Ikan kecil yang asin." },
+  rare_laut:   { name:"Tuna",         emoji:"🐠", desc:"Ikan gesit di laut." },
+  epic_laut:   { name:"Hiu Macan",   emoji:"🦈", desc:"Predator laut!" },
+  legendary_laut: { name:"Kraken Muda", emoji:"🦑", desc:"Makhluk legendaris!" },
+  common_danau: { name:"Ikan Mas",   emoji:"🐟", desc:"Ikan danau biasa." },
+  rare_danau:   { name:"Arwana",     emoji:"🐠", desc:"Arwana perak berkilau." },
+  epic_danau:   { name:"Arapaima",   emoji:"🐡", desc:"Monster danau Amazon!" },
+  legendary_danau: { name:"Naga Danau", emoji:"🐉", desc:"Hanya muncul saat purnama!" },
+  common_sungai:  { name:"Ikan Gabus", emoji:"🐟", desc:"Bersembunyi di bebatuan." },
+  rare_sungai:    { name:"Salmon",     emoji:"🐠", desc:"Melawan arus deras." },
+  epic_sungai:    { name:"Beluga Sturgeon", emoji:"🐡", desc:"Ikan purba!" },
+  legendary_sungai: { name:"Lele Raksasa Mekong", emoji:"🐋", desc:"Hampir punah!" },
+  common_rawa:  { name:"Ikan Sepat", emoji:"🐟", desc:"Licin & berbau lumpur." },
+  rare_rawa:    { name:"Bawal Hitam", emoji:"🐠", desc:"Langka di rawa-rawa." },
+  epic_rawa:    { name:"Buaya Cichlid", emoji:"🐊", desc:"Gigitannya kuat!" },
+  legendary_rawa:  { name:"Ikan Siluman", emoji:"👻", desc:"Bisa menghilang?" },
+  common_pantai:  { name:"Ikan Bandeng", emoji:"🐟", desc:"Segar hasil pantai." },
+  rare_pantai:    { name:"Kakap Merah",  emoji:"🐠", desc:"Harganya mahal!" },
+  epic_pantai:    { name:"Marlin Biru",  emoji:"⚔️", desc:"Secepat kilat!" },
+  legendary_pantai: { name:"Coelacanth", emoji:"🦕", desc:"Fosil hidup 400jt tahun!" }
+};
+
+const LOCATION_NAMES = {
+  laut:"🌊 Laut Dalam", danau:"🏞️ Danau Tenang",
+  sungai:"🏔️ Sungai Pegunungan", rawa:"🌿 Rawa Misterius", pantai:"🏖️ Pantai"
+};
+
+const locationId = FISH_ID.split("_").slice(1).join("_") || "laut";
+const rarityKey  = FISH_ID.split("_")[0] || "common";
+const fishInfo   = FISH_NAMES[FISH_ID] || { name:"Ikan Misterius", emoji:"🐟", desc:"???" };
+const rarityConf = FISH_DB[rarityKey]  || FISH_DB.common;
+
+let gameState = "waiting"; // waiting | playing | done
+let mechSteps = [];
+let currentStep = 0;
+let mechTimer = null;
+let waitTimer = null;
+let holdInterval = null;
+let holdProgress = 0;
+let tapDone = 0;
+let seqProgress = 0;
+let stepResult = []; // true/false per step
+
+// ═══════════════════════════════════════════════════════
+//   Bubble Generator
+// ═══════════════════════════════════════════════════════
+function spawnBubbles() {
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      const b = document.createElement("div");
+      b.className = "bubble";
+      const size = 4 + Math.random() * 12;
+      b.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${Math.random()*100}%;
+        bottom:0;
+        animation-duration:${4+Math.random()*6}s;
+        animation-delay:${Math.random()*2}s;
+      `;
+      document.querySelector(".ocean-bg").appendChild(b);
+      setTimeout(() => b.remove(), 10000);
+    }, i * 200);
+  }
+}
+setInterval(spawnBubbles, 3000);
+spawnBubbles();
+
+// ═══════════════════════════════════════════════════════
+//   Wait Phase — countdown timer sebelum bite
+// ═══════════════════════════════════════════════════════
+document.getElementById("locationLabel").textContent = LOCATION_NAMES[locationId] || locationId;
+
+let waitRemaining = TIMER_MS;
+const waitFill = document.getElementById("waitTimerFill");
+const waitText = document.getElementById("waitTimerText");
+
+// Acak kapan ikan "bite" — antara 20% - 70% dari total timer
+const biteDelay = TIMER_MS * (0.2 + Math.random() * 0.5);
+let biteTriggered = false;
+
+function updateWaitTimer() {
+  waitRemaining -= 100;
+  if (waitRemaining <= 0 && !biteTriggered) {
+    clearInterval(waitTimer);
+    triggerExpired();
+    return;
+  }
+  const pct = (waitRemaining / TIMER_MS) * 100;
+  waitFill.style.width = pct + "%";
+  if (pct < 30) waitFill.classList.add("danger");
+  waitText.textContent = Math.ceil(waitRemaining / 1000) + "s";
+}
+
+waitTimer = setInterval(updateWaitTimer, 100);
+updateWaitTimer();
+
+setTimeout(() => {
+  if (gameState === "waiting") triggerBite();
+}, biteDelay);
+
+// ═══════════════════════════════════════════════════════
+//   Trigger Bite — tampilkan alert, mulai game
+// ═══════════════════════════════════════════════════════
+function triggerBite() {
+  biteTriggered = true;
+  clearInterval(waitTimer);
+  gameState = "playing";
+
+  // Vibrate
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+
+  const alert = document.getElementById("biteAlert");
+  const rarityLabel = { common:"Common", rare:"Rare", epic:"Epic ✨", legendary:"LEGENDARY! 🔥" };
+  document.getElementById("biteTitle").textContent = `${fishInfo.emoji} ADA YANG MAKAN!`;
+  document.getElementById("biteSub").textContent = `[${rarityConf.label}] Bersiap melawan ${fishInfo.name}!`;
+
+  alert.style.display = "flex";
+
+  setTimeout(() => {
+    alert.style.display = "none";
+    startGame();
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════
+//   Start Game — tampilkan area game & mechanic pertama
+// ═══════════════════════════════════════════════════════
+function startGame() {
+  document.getElementById("waitScreen").style.display = "none";
+  const ga = document.getElementById("gameArea");
+  ga.style.display = "flex";
+
+  // Populate fish info
+  document.getElementById("gameLocationLabel").textContent = LOCATION_NAMES[locationId];
+  document.getElementById("fishRarityBadge").textContent = rarityConf.label;
+  document.getElementById("fishEmojiDisplay").textContent = fishInfo.emoji;
+  document.getElementById("fishName").textContent = fishInfo.name;
+  document.getElementById("fishDescText").textContent = fishInfo.desc;
+
+  // Rarity tag
+  const tag = document.getElementById("fishRarityTag");
+  tag.textContent = rarityConf.label;
+  tag.className = `fish-rarity rarity-${rarityKey}`;
+
+  // Generate mechanic steps
+  mechSteps = generateMechanics(rarityKey, rarityConf.mechSteps);
+  currentStep = 0;
+
+  loadStep(currentStep);
+}
+
+// ═══════════════════════════════════════════════════════
+//   Generate Mechanics (random berdasarkan rarity)
+// ═══════════════════════════════════════════════════════
+function generateMechanics(rarity, count) {
+  const ALL = ["direction", "tap", "hold", "sequence"];
+  const steps = [];
+  for (let i = 0; i < count; i++) {
+    const mechId = ALL[Math.floor(Math.random() * ALL.length)];
+    steps.push(buildMechanic(mechId, rarity));
+  }
+  return steps;
+}
+
+function buildMechanic(id, rarity) {
+  const timers = { common:8000, rare:6000, epic:5000, legendary:4000 };
+  const t = timers[rarity] || 8000;
+
+  if (id === "direction") {
+    const dirs = [
+      { pull:"⬅️ Kiri",  counter:"➡️ Kanan", key:"right" },
+      { pull:"➡️ Kanan", counter:"⬅️ Kiri",  key:"left"  },
+      { pull:"⬆️ Atas",  counter:"⬇️ Bawah", key:"down"  },
+      { pull:"⬇️ Bawah", counter:"⬆️ Atas",  key:"up"    }
+    ];
+    const d = dirs[Math.floor(Math.random() * dirs.length)];
+    return { id, timer: t, ...d };
+  }
+  if (id === "tap") {
+    const taps = { common:3, rare:5, epic:7, legendary:10 };
+    return { id, timer: t, required: taps[rarity] || 3 };
+  }
+  if (id === "hold") {
+    const dur = { common:2000, rare:3000, epic:4500, legendary:6500 };
+    return { id, timer: t + 2000, duration: dur[rarity] || 2000 };
+  }
+  if (id === "sequence") {
+    const len = { common:3, rare:4, epic:5, legendary:6 };
+    const btns = ["⬅️","➡️","⬆️","⬇️","🔴","🟢"];
+    const count = len[rarity] || 3;
+    const seq = Array.from({ length: count }, () => btns[Math.floor(Math.random() * btns.length)]);
+    return { id, timer: t * 1.5, sequence: seq };
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//   Load Step
+// ═══════════════════════════════════════════════════════
+function loadStep(idx) {
+  const step = mechSteps[idx];
+  if (!step) return;
+
+  // Clear timers
+  clearInterval(mechTimer);
+  clearInterval(holdInterval);
+  tapDone = 0;
+  holdProgress = 0;
+  seqProgress = 0;
+
+  // Update UI labels
+  document.getElementById("mechStep").textContent = `${idx+1}/${mechSteps.length}`;
+  document.getElementById("stepLabel").textContent  = `${idx+1}/${mechSteps.length}`;
+
+  // Start per-step countdown
+  let stepRemaining = step.timer;
+  const fill = document.getElementById("mechTimerFill");
+  const text = document.getElementById("mechTimerText");
+  fill.style.width = "100%";
+  fill.classList.remove("danger");
+
+  mechTimer = setInterval(() => {
+    stepRemaining -= 100;
+    const pct = (stepRemaining / step.timer) * 100;
+    fill.style.width = pct + "%";
+    text.textContent = Math.ceil(stepRemaining / 1000) + "s";
+    if (pct < 30) fill.classList.add("danger");
+    if (stepRemaining <= 0) {
+      clearInterval(mechTimer);
+      stepFailed();
+    }
+  }, 100);
+
+  // Render mechanic
+  renderMechanic(step, idx);
+}
+
+// ═══════════════════════════════════════════════════════
+//   Render Mechanic Controls
+// ═══════════════════════════════════════════════════════
+function renderMechanic(step, idx) {
+  const controls = document.getElementById("mechControls");
+  const title    = document.getElementById("mechTitle");
+  const instr    = document.getElementById("mechInstruction");
+  const sub      = document.getElementById("mechSub");
+  controls.innerHTML = "";
+  sub.textContent = "";
+
+  // ── Direction ───────────────────────────────────────
+  if (step.id === "direction") {
+    title.textContent = "⚡ LAWAN ARAH!";
+    instr.innerHTML = `Ikan menarik ke <strong style="color:var(--cyan)">${step.pull}</strong>!<br>Tekan arah <strong style="color:var(--green)">${step.counter}</strong>!`;
+
+    const keyMap = { left:"⬅️", right:"➡️", up:"⬆️", down:"⬇️" };
+    const grid = document.createElement("div");
+    grid.className = "dir-grid";
+
+    const layout = [
+      [null,   "up",   null  ],
+      ["left", null,   "right"],
+      [null,   "down", null  ]
+    ];
+
+    layout.forEach(row => {
+      row.forEach(dir => {
+        const btn = document.createElement("button");
+        btn.className = "dir-btn" + (dir === null ? " empty" : "");
+        btn.textContent = dir ? keyMap[dir] : "";
+        if (dir) {
+          btn.addEventListener("click", () => {
+            if (dir === step.key) {
+              btn.classList.add("correct");
+              setTimeout(() => stepPassed(), 300);
+            } else {
+              btn.classList.add("wrong");
+              const box = document.getElementById("mechanicBox");
+              box.classList.add("shake");
+              setTimeout(() => { btn.classList.remove("wrong"); box.classList.remove("shake"); }, 350);
+              if (navigator.vibrate) navigator.vibrate(200);
+            }
+          });
+        }
+        grid.appendChild(btn);
+      });
+    });
+
+    controls.appendChild(grid);
+    sub.textContent = "Pilih satu tombol arah yang benar!";
+  }
+
+  // ── Tap ─────────────────────────────────────────────
+  else if (step.id === "tap") {
+    title.textContent = "👆 TAP CEPAT!";
+    instr.textContent = `Tekan tombol sebanyak ${step.required}× secepat mungkin!`;
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:8px; width:100%";
+
+    const tapBtn = document.createElement("button");
+    tapBtn.className = "tap-btn";
+    tapBtn.innerHTML = `🎣<div class="tap-count" id="tapCountDisplay">0/${step.required}</div>`;
+
+    const prog = document.createElement("div");
+    prog.className = "tap-progress";
+    const fill = document.createElement("div");
+    fill.className = "tap-fill";
+    fill.id = "tapFill";
+    fill.style.width = "0%";
+    prog.appendChild(fill);
+
+    tapBtn.addEventListener("click", () => {
+      if (gameState !== "playing") return;
+      tapDone++;
+      if (navigator.vibrate) navigator.vibrate(30);
+      tapBtn.querySelector(".tap-count").textContent = `${tapDone}/${step.required}`;
+      document.getElementById("tapFill").style.width = `${(tapDone/step.required)*100}%`;
+      if (tapDone >= step.required) {
+        tapBtn.style.pointerEvents = "none";
+        setTimeout(() => stepPassed(), 200);
+      }
+    });
+
+    wrap.appendChild(tapBtn);
+    wrap.appendChild(prog);
+    controls.appendChild(wrap);
+    sub.textContent = "Tap berkali-kali!";
+  }
+
+  // ── Hold ─────────────────────────────────────────────
+  else if (step.id === "hold") {
+    title.textContent = "✊ TAHAN JORAN!";
+    instr.textContent = `Tahan tombol selama ${step.duration/1000} detik tanpa lepas!`;
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:8px; width:100%";
+
+    const holdBtn = document.createElement("button");
+    holdBtn.className = "hold-btn";
+    holdBtn.innerHTML = `✊<div style="font-size:11px; color:var(--text-dim); margin-top:4px">TAHAN</div>`;
+
+    const barWrap = document.createElement("div");
+    barWrap.className = "hold-bar-wrap";
+    const fill = document.createElement("div");
+    fill.className = "hold-fill";
+    fill.id = "holdFill";
+    barWrap.appendChild(fill);
+
+    const lbl = document.createElement("div");
+    lbl.className = "hold-label";
+    lbl.id = "holdLabel";
+    lbl.textContent = `0 / ${step.duration/1000}s`;
+
+    let holding = false;
+    let holdElapsed = 0;
+
+    function startHold() {
+      if (holding) return;
+      holding = true;
+      holdBtn.classList.add("holding");
+      if (navigator.vibrate) navigator.vibrate([50]);
+
+      holdInterval = setInterval(() => {
+        holdElapsed += 50;
+        const pct = Math.min((holdElapsed / step.duration) * 100, 100);
+        document.getElementById("holdFill").style.width = pct + "%";
+        document.getElementById("holdLabel").textContent = `${(holdElapsed/1000).toFixed(1)} / ${step.duration/1000}s`;
+        if (holdElapsed >= step.duration) {
+          clearInterval(holdInterval);
+          holdBtn.style.pointerEvents = "none";
+          setTimeout(() => stepPassed(), 200);
+        }
+      }, 50);
+    }
+
+    function stopHold() {
+      if (!holding) return;
+      holding = false;
+      holdBtn.classList.remove("holding");
+      clearInterval(holdInterval);
+      // Reset jika belum selesai
+      if (holdElapsed < step.duration) {
+        holdElapsed = 0;
+        document.getElementById("holdFill").style.width = "0%";
+        document.getElementById("holdLabel").textContent = `0 / ${step.duration/1000}s`;
+        if (navigator.vibrate) navigator.vibrate(150);
+      }
+    }
+
+    holdBtn.addEventListener("mousedown",  startHold);
+    holdBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startHold(); }, { passive: false });
+    holdBtn.addEventListener("mouseup",    stopHold);
+    holdBtn.addEventListener("mouseleave", stopHold);
+    holdBtn.addEventListener("touchend",   stopHold);
+    holdBtn.addEventListener("touchcancel",stopHold);
+
+    wrap.appendChild(holdBtn);
+    wrap.appendChild(barWrap);
+    wrap.appendChild(lbl);
+    controls.appendChild(wrap);
+    sub.textContent = "Jangan lepas sebelum penuh!";
+  }
+
+  // ── Sequence ─────────────────────────────────────────
+  else if (step.id === "sequence") {
+    title.textContent = "🔢 URUTAN TOMBOL!";
+    instr.textContent = "Tekan tombol sesuai urutan yang ditampilkan!";
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%";
+
+    // Display sequence
+    const seqDisp = document.createElement("div");
+    seqDisp.className = "seq-display";
+    step.sequence.forEach((s, i) => {
+      const item = document.createElement("div");
+      item.className = "seq-item" + (i === 0 ? " active" : "");
+      item.textContent = s;
+      item.id = `seq_${i}`;
+      seqDisp.appendChild(item);
+    });
+
+    // Buttons
+    const uniqueBtns = [...new Set(step.sequence)];
+    // Always show all 6 options for fair play
+    const allBtns = ["⬅️","➡️","⬆️","⬇️","🔴","🟢"];
+    const seqBtnRow = document.createElement("div");
+    seqBtnRow.className = "seq-btns";
+
+    allBtns.forEach(sym => {
+      const btn = document.createElement("button");
+      btn.className = "seq-btn";
+      btn.textContent = sym;
+      btn.addEventListener("click", () => {
+        if (gameState !== "playing") return;
+        const expected = step.sequence[seqProgress];
+        const curItem  = document.getElementById(`seq_${seqProgress}`);
+
+        if (sym === expected) {
+          curItem.classList.remove("active");
+          curItem.classList.add("done");
+          if (navigator.vibrate) navigator.vibrate(40);
+          seqProgress++;
+          if (seqProgress < step.sequence.length) {
+            document.getElementById(`seq_${seqProgress}`).classList.add("active");
+          } else {
+            setTimeout(() => stepPassed(), 200);
+          }
+        } else {
+          // Wrong — flash red & reset
+          curItem.classList.add("wrong");
+          const box = document.getElementById("mechanicBox");
+          box.classList.add("shake");
+          if (navigator.vibrate) navigator.vibrate(200);
+          setTimeout(() => {
+            curItem.classList.remove("wrong", "active");
+            box.classList.remove("shake");
+            // Reset sequence display
+            seqProgress = 0;
+            step.sequence.forEach((_, i) => {
+              const el = document.getElementById(`seq_${i}`);
+              el.className = "seq-item" + (i === 0 ? " active" : "");
+            });
+          }, 400);
+        }
+      });
+      seqBtnRow.appendChild(btn);
+    });
+
+    wrap.appendChild(seqDisp);
+    wrap.appendChild(seqBtnRow);
+    controls.appendChild(wrap);
+    sub.textContent = "Tekan yang salah = reset dari awal!";
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//   Step Passed / Failed
+// ═══════════════════════════════════════════════════════
+function stepPassed() {
+  clearInterval(mechTimer);
+  clearInterval(holdInterval);
+  stepResult.push(true);
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+  currentStep++;
+  if (currentStep >= mechSteps.length) {
+    // Semua step berhasil!
+    endGame(true);
+  } else {
+    // Lanjut step berikutnya
+    loadStep(currentStep);
+  }
+}
+
+function stepFailed() {
+  clearInterval(mechTimer);
+  clearInterval(holdInterval);
+  stepResult.push(false);
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  // Langsung end game — ikan kabur
+  endGame(false);
+}
+
+// ═══════════════════════════════════════════════════════
+//   End Game — kirim ke bot webhook
+// ═══════════════════════════════════════════════════════
+async function endGame(success) {
+  gameState = "done";
+  clearInterval(mechTimer);
+  clearInterval(holdInterval);
+
+  // Show result screen dulu
+  showResult(success);
+
+  // Kirim ke webhook
+  try {
+    await fetch(BOT_WEBHOOK, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Fishing-Secret": WEBHOOK_SECRET
+      },
+      body: JSON.stringify({
+        sender:  UID,
+        chatJid: CHAT_JID,
+        fishId:  FISH_ID,
+        success
+      })
+    });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    // Tetap tampilkan result walau webhook gagal
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//   Show Result Screen
+// ═══════════════════════════════════════════════════════
+function showResult(success) {
+  document.getElementById("gameArea").style.display = "none";
+
+  const screen = document.getElementById("resultScreen");
+  screen.classList.add("show");
+
+  if (success) {
+    document.getElementById("resultEmoji").textContent = fishInfo.emoji;
+    document.getElementById("resultTitle").textContent = "BERHASIL! 🎉";
+    document.getElementById("resultTitle").style.color = "var(--green)";
+    document.getElementById("resultSub").textContent =
+      `${fishInfo.name} berhasil kamu tangkap!\nNotifikasi dikirim ke WhatsApp kamu.`;
+
+    // Rewards
+    const rewards = document.getElementById("resultRewards");
+    const rarityMora = { common:150, rare:500, epic:1500, legendary:5000 };
+    const rarityExp  = { common:20,  rare:80,  epic:250,  legendary:800 };
+    rewards.innerHTML =
+      `<div class="reward-row"><span>🐟 Ikan</span><span class="reward-val">${fishInfo.name}</span></div>` +
+      `<div class="reward-row"><span>✨ Rarity</span><span class="reward-val">${rarityConf.label}</span></div>` +
+      `<div class="reward-row"><span>💰 Mora</span><span class="reward-val">+${(rarityMora[rarityKey]||0).toLocaleString()}</span></div>` +
+      `<div class="reward-row"><span>🆙 EXP</span><span class="reward-val">+${rarityExp[rarityKey]||0}</span></div>`;
+    rewards.style.display = "block";
+
+    // Confetti untuk legendary
+    if (rarityKey === "legendary" || rarityKey === "epic") {
+      launchConfetti();
+    }
+
+  } else {
+    document.getElementById("resultEmoji").textContent = "💨";
+    document.getElementById("resultTitle").textContent = "IKAN KABUR!";
+    document.getElementById("resultTitle").style.color = "var(--red)";
+    document.getElementById("resultSub").textContent =
+      `${fishInfo.name} berhasil lolos dari joranmu!\nGagal di step ${currentStep+1}/${mechSteps.length}.\n\nCoba lagi dengan mengetik .mancing di WhatsApp!`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//   Trigger Expired (timer habis sebelum bite handled)
+// ═══════════════════════════════════════════════════════
+function triggerExpired() {
+  gameState = "done";
+  document.getElementById("waitScreen").style.display = "none";
+  document.getElementById("gameArea").style.display = "none";
+  const screen = document.getElementById("resultScreen");
+  screen.classList.add("show");
+  document.getElementById("resultEmoji").textContent = "⌛";
+  document.getElementById("resultTitle").textContent = "WAKTU HABIS!";
+  document.getElementById("resultTitle").style.color = "var(--red)";
+  document.getElementById("resultSub").textContent =
+    "Link mancing sudah expired.\nKetik .mancing di WhatsApp untuk coba lagi!";
+
+  // Kirim expired ke bot
+  fetch(BOT_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "X-Fishing-Secret":WEBHOOK_SECRET },
+    body: JSON.stringify({ sender:UID, chatJid:CHAT_JID, fishId:FISH_ID, success:false })
+  }).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════
+//   Confetti
+// ═══════════════════════════════════════════════════════
+function launchConfetti() {
+  const colors = ["#ffd700","#00d4ff","#00ff88","#a855f7","#ff4757","#ff6b6b"];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const p = document.createElement("div");
+      p.className = "confetti-particle";
+      const size = 6 + Math.random() * 8;
+      p.style.cssText = `
+        left:${Math.random()*100}vw;
+        top:-20px;
+        width:${size}px; height:${size}px;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        animation-duration:${1.5+Math.random()*2}s;
+        animation-delay:${Math.random()*0.5}s;
+        border-radius:${Math.random()>0.5?'50%':'2px'};
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 3000);
+    }, i * 30);
+  }
+}
+</script>
+</body>
+</html>

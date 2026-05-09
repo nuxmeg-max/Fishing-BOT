@@ -1,0 +1,9 @@
+{
+  "name": "capitano-fishing-rpg",
+  "version": "1.0.0",
+  "description": "Fishing RPG game untuk Capitano WhatsApp Bot",
+  "private": true,
+  "scripts": {
+    "start": "echo 'Static site - deploy to Vercel'"
+  }
+}
